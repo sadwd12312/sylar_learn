@@ -1,6 +1,24 @@
 #include"log.h"
 
 namespace syalr {
+
+	const char* LogLevel::ToString(LogLevel::Level level)
+	{
+		switch (level)
+#define XX(name) \
+	case LogLevel::name: \
+		return #name;\
+		break;
+
+	XX(DEBUG);
+	XX(INFO);
+	XX(WARN);
+	XX(ERROR);
+	XX(FATAL);
+#undef XX
+	default:
+		return "UNKNOW";
+	}
 	Logger::Logger(const std::string& name)
 		:m_name(name) {}
 
@@ -53,11 +71,11 @@ namespace syalr {
 	FileLogAppender::FileLogAppender(const std::string& filename)
 		:m_filename(filename) {}
 
-	void FileLogAppender::log(LogLevel::Level level, LogEvent::ptr event)
+	void FileLogAppender::log(std::shared_ptr<Logger> logger,LogLevel::Level level, LogEvent::ptr event)
 	{
 		if (level >= m_level)
 		{
-			m_filestream << m_formatter.format(event);
+			m_filestream << m_formatter.format(logger,level,event);
 		}
 	}
 	
@@ -70,22 +88,22 @@ namespace syalr {
 		m_filestream.open(m_filename);
 		return !!m_filestream;
 	}
-	void StdoutLogAppender::log(LogLevel::Level level, LogEvent::ptr event)
+	void StdoutLogAppender::log(std::shared_ptr<Logger> logger,LogLevel::Level level, LogEvent::ptr event)
 	{
 		if (level >= m_level)
 		{
-			std::cout << m_formatter.format(event);
+			std::cout << m_formatter.format(logger, level, event);
 		}
 	}
 	LogFormatter::LogFormatter(const std::string& pattern)
 		:m_pattern(pattern){}
 
-	std::string LogFormatter::format(LogEvent::ptr event)
+	std::string LogFormatter::format(std::shared_ptr<Logger> logger,LogLevel::Level level,LogEvent::ptr event)
 	{
 		std::stringstream ss;
 		for (auto& i : m_items)
 		{
-			i->format(ss, event);
+			i->format(ss,logger,level, event);
 		}
 		return ss.str();
 	}
@@ -153,7 +171,41 @@ namespace syalr {
 			}
 			i = n;
 		}
+		if (!nstr.empty())
+		{
+			vec.push_back(std::make_pair(nstr, "", 0));
+		}
+		//%m -- 消息体
+		//%p -- Level
+		//%r -- 启动后的时间
+		//%c -- 日志名称
+		//%t -- 线程id
+		//%n -- 回车换行
+		//%d -- 时间
+		//%f -- 文件名
+		//%g -- 行号
 	}
+	class MessageFormatterItem :public FormatItem 
+	{
+	public:
+		void format(std::ostream& os,Logger::ptr logger,LogLevel::level level, Logevent::ptr event) override {
+			os << event->getContext();
+		}
+	};
+	class LevelFormatterItem :public FormatItem
+	{
+	public:
+		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
+			os << LogLevel::ToString(level);
+		}
+	};
+	class ElapseFormatterItem :public FormatItem
+	{
+	public:
+		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
+			os << event->getElapse();
+		}
+	};
 }
 
 

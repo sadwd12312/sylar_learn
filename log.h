@@ -9,11 +9,21 @@
 #include<fstream>
 #include<vector>
 
+class Logger;
 //日志事件
 class LogEvent {
 public:
 	typedef std::shared_ptr<LogEvent> ptr;
 	LogEvent();
+
+	const char* getFile() { return m_file; }
+	int32_t getLine() { return m_line; }
+	uint32_t getElapse() { return m_elapse; }
+	uint32_t getThreadId() { return m_threadId; }
+	uint32_t getFiberId() { return m_fiberId; }
+	uint64_t getTime() { return m_time; }
+	const std::string& getContext()const { return m_content; }
+}
 private:
 	const char* m_file = nullptr; //文件名
 	int32_t m_line = 0;//行号
@@ -28,12 +38,14 @@ class LogLevel {
 public:
 	enum Level
 	{
+		UNKNOW = 0,
 		DEBUG = 1,
 		INFO=2,
 		WARN=3,
 		ERROR=4,
 		FATAL=5
 	};
+	static const char* ToString(LogLevel::Level);
 };
 
 //日志格式器
@@ -44,14 +56,14 @@ public:
 	LogFormatter(const std::string& pattern);
 
 	
-	std::string format(LogEvent::ptr event);
-private:
+	std::string format(std::shared_ptr<Logger> ptr,LogLevel::Level level,LogEvent::ptr event);
+public:
 	class FormatItem
 	{
 	public:
 		typedef std::shared_ptr<FormatItem> ptr;
 		virtual ~FormatItem(){}
-		virtual void format(std::ostream& os,LogEvent::ptr event) = 0;
+		virtual void format(std::ostream& os, std::shared_ptr<Logger> logger,LogLevel::Level level,LogEvent::ptr event) = 0;
 	};
 	void init();
 
@@ -68,7 +80,7 @@ public:
 	typedef std::shared_ptr<LogAppender> ptr;
 	virtual ~LogAppender() {}
 
-	virtual void log(LogLevel::Level level, LogEvent::ptr event) = 0;
+	virtual void log(std::shared_ptr<Logger> logger,LogLevel::Level level, LogEvent::ptr event) = 0;
 
 	void setFormatter(LogFormatter::ptr val) { m_formatter = val; }
 	LogFormatter::ptr getFormatter()const { return m_formatter; }
