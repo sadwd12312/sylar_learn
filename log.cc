@@ -1,4 +1,5 @@
 #include"log.h"
+#include<map>
 
 namespace syalr {
 
@@ -10,15 +11,103 @@ namespace syalr {
 		return #name;\
 		break;
 
-	XX(DEBUG);
-	XX(INFO);
-	XX(WARN);
-	XX(ERROR);
-	XX(FATAL);
+			XX(DEBUG);
+		XX(INFO);
+		XX(WARN);
+		XX(ERROR);
+		XX(FATAL);
 #undef XX
 	default:
 		return "UNKNOW";
 	}
+
+	class MessageFormatterItem :public FormatItem
+	{
+	public:
+		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
+			os << event->getContext();
+		}
+	};
+	class LevelFormatterItem :public FormatItem
+	{
+	public:
+		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
+			os << LogLevel::ToString(level);
+		}
+	};
+	class ElapseFormatterItem :public FormatItem
+	{
+	public:
+		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
+			os << event->getElapse();
+		}
+	};
+	class NameFormatterItem :public FormatItem
+	{
+	public:
+		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
+			os << logger->getName();
+		}
+	};
+	class ThreadIdFormatterItem :public FormatItem
+	{
+	public:
+		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
+			os << event->getThreadId();
+		}
+	};
+	class FiberIdFormatterItem :public FormatItem
+	{
+	public:
+		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
+			os << event->getFiberId();
+		}
+	};
+	class DateTimeFormatterItem :public FormatItem
+	{
+	public:
+		DateTimeFormatterItem(const std::string& format = "%Y:%m:%d %H:%M:%S")
+			:m_format(format) {}
+		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
+			os << event->getTime();
+		}
+	private:
+		std::string m_format;
+	};
+	class FilenameFormatterItem :public FormatItem
+	{
+	public:
+		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
+			os << event->getFile();
+		}
+	};
+	class LineFormatterItem :public FormatItem
+	{
+	public:
+		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
+			os << event->getLine();
+		}
+	};
+	class NewLineFormatterItem :public FormatItem
+	{
+	public:
+		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
+			os << std::endl;
+		}
+	};
+	class StringFormatterItem :public FormatItem
+	{
+	public:
+		StringFormatterItem(const std::string& str)
+			:FormatterItem(str), m_string(str) {}
+		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
+			os << m_string;
+		}
+	private:
+		std::string m_string;
+	};
+
+
 	Logger::Logger(const std::string& name)
 		:m_name(name) {}
 
@@ -71,14 +160,14 @@ namespace syalr {
 	FileLogAppender::FileLogAppender(const std::string& filename)
 		:m_filename(filename) {}
 
-	void FileLogAppender::log(std::shared_ptr<Logger> logger,LogLevel::Level level, LogEvent::ptr event)
+	void FileLogAppender::log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event)
 	{
 		if (level >= m_level)
 		{
-			m_filestream << m_formatter.format(logger,level,event);
+			m_filestream << m_formatter.format(logger, level, event);
 		}
 	}
-	
+
 	bool FileLogAppender::reopen()
 	{
 		if (m_filestream)
@@ -88,7 +177,7 @@ namespace syalr {
 		m_filestream.open(m_filename);
 		return !!m_filestream;
 	}
-	void StdoutLogAppender::log(std::shared_ptr<Logger> logger,LogLevel::Level level, LogEvent::ptr event)
+	void StdoutLogAppender::log(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event)
 	{
 		if (level >= m_level)
 		{
@@ -96,19 +185,19 @@ namespace syalr {
 		}
 	}
 	LogFormatter::LogFormatter(const std::string& pattern)
-		:m_pattern(pattern){}
+		:m_pattern(pattern) {}
 
-	std::string LogFormatter::format(std::shared_ptr<Logger> logger,LogLevel::Level level,LogEvent::ptr event)
+	std::string LogFormatter::format(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event)
 	{
 		std::stringstream ss;
 		for (auto& i : m_items)
 		{
-			i->format(ss,logger,level, event);
+			i->format(ss, logger, level, event);
 		}
 		return ss.str();
 	}
 	void LogFormatter::init() {
-		std::vector<std::tuple<std::string ,std::string, int>> vec;
+		std::vector<std::tuple<std::string, std::string, int>> vec;
 		std::string nstr;
 		size_t last_pos = 0;
 		for (size_t i = 0; i < m_pattern.size(); ++i)
@@ -126,7 +215,7 @@ namespace syalr {
 
 			std::string str;
 			std::string fmt;
-			while (++n < m_pattern.size()){
+			while (++n < m_pattern.size()) {
 				if (isspace(m_pattern[n]))
 				{
 					break;
@@ -185,27 +274,42 @@ namespace syalr {
 		//%f -- 文件名
 		//%g -- 行号
 	}
-	class MessageFormatterItem :public FormatItem 
+	static std::map<std::string, std::function<ForamtItem::ptr(const std::string & str)>> s_format_items =
 	{
-	public:
-		void format(std::ostream& os,Logger::ptr logger,LogLevel::level level, Logevent::ptr event) override {
-			os << event->getContext();
-		}
+#define XX(str,C) \
+		{#str,[](const std::string& fmt){return FormatItem(new C(fmt));}}
+
+		XX(m, MessageFormatItem);
+		XX(p, LevelFormatItem);
+		XX(r, ElapseFormatItem);
+		XX(c, NameFormatItem);
+		XX(t, ThreadIdFormatItem);
+		XX(n, NewLineFormatItem);
+		XX(d, DateTimeFormatItem);
+		XX(f, FilenameFormatItem);
+		XX(l, LineFormatItem);
+#undef XX
 	};
-	class LevelFormatterItem :public FormatItem
+	for (auto& i : vec)
 	{
-	public:
-		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
-			os << LogLevel::ToString(level);
+		if (std::get<2>[i] == 0)
+		{
+			m_items.push_back(FormatItem::ptr(new StringFormatItem(std::get<0>[i])));
 		}
-	};
-	class ElapseFormatterItem :public FormatItem
-	{
-	public:
-		void format(std::ostream& os, Logger::ptr logger, LogLevel::level level, Logevent::ptr event) override {
-			os << event->getElapse();
+		else
+		{
+			auto it = s_format_items.find(std::<0>[i]);
+			if (it == s_format_items.end())
+			{
+				m_items.push_back(FormatItem::ptr(new StringFormatItem("<<error_format %" + std::get<0>(i) + ">>")));
+			}
+			else
+			{
+				m_items.push_back(it->second(std::get<1>(i)));
+			}
 		}
-	};
+		std::cout << std::get<0>(i) << " - " << std::get<1>(i) << " - " << std::get<2>(i) << std::endl;
+	}
 }
 
 
