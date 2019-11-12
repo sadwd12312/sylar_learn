@@ -1,17 +1,17 @@
 #include"log.h"
 #include<map>
-
-namespace syalr {
+namespace sylar{
 
 	const char* LogLevel::ToString(LogLevel::Level level)
 	{
 		switch (level)
+		{
 #define XX(name) \
 	case LogLevel::name: \
-		return #name;\
+		return #name; \
 		break;
 
-			XX(DEBUG);
+		XX(DEBUG);
 		XX(INFO);
 		XX(WARN);
 		XX(ERROR);
@@ -20,6 +20,8 @@ namespace syalr {
 	default:
 		return "UNKNOW";
 	}
+		return "UNKNOW";
+	};
 
 	class MessageFormatterItem :public FormatItem
 	{
@@ -273,7 +275,6 @@ namespace syalr {
 		//%d -- 时间
 		//%f -- 文件名
 		//%g -- 行号
-	}
 	static std::map<std::string, std::function<ForamtItem::ptr(const std::string & str)>> s_format_items =
 	{
 #define XX(str,C) \
@@ -311,8 +312,7 @@ namespace syalr {
 		std::cout << std::get<0>(i) << " - " << std::get<1>(i) << " - " << std::get<2>(i) << std::endl;
 	}
 }
-
-
+}
 
 
 

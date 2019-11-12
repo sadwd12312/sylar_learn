@@ -5,10 +5,10 @@
 #include<stdint.h>
 #include<memory>
 #include<list>
-#include<stringstream>
+#include<sstream>
 #include<fstream>
 #include<vector>
-
+namespace syalr{
 class Logger;
 //日志事件
 class LogEvent {
@@ -23,7 +23,7 @@ public:
 	uint32_t getFiberId() { return m_fiberId; }
 	uint64_t getTime() { return m_time; }
 	const std::string& getContext()const { return m_content; }
-}
+
 private:
 	const char* m_file = nullptr; //文件名
 	int32_t m_line = 0;//行号
@@ -45,7 +45,7 @@ public:
 		ERROR=4,
 		FATAL=5
 	};
-	static const char* ToString(LogLevel::Level);
+	static const char* ToString(LogLevel::Level level);
 };
 
 //日志格式器
@@ -109,7 +109,7 @@ public:
 	LogLevel::Level getLevel()const { return m_level; }
 	void setLevel(LogLevel::Level val) { m_level = val; }
 
-	const std::string& getName()const return{ m_name; }
+	const std::string& getName() const {return m_name; }
 private:
 	std::string m_name;//日志名称
 	LogLevel::Level m_level;//日志级别
@@ -119,22 +119,23 @@ private:
 //输出到控制台的Appender
 class StdoutLogAppender :public LogAppender {
 public:
-	typedef std::shared_ptr<stdoutLogAppender> ptr;
-	void log(LogLevel::Level, LogEvent::ptr event)override;
+	typedef std::shared_ptr<StdoutLogAppender> ptr;
+	void log(Logger::ptr logger,LogLevel::Level, LogEvent::ptr event)override;
 };
 //输出到文件的Appender
 class FileLogAppender :public LogAppender{
 public:
-	typedef std::shared_ptr<fileLogAppender> ptr;
+	typedef std::shared_ptr<FileLogAppender> ptr;
 	FileLogAppender(const std::string& filename);
-	void log(LogLevel::Level, LogEvent::ptr event)override;
+	void log(Logger::ptr logger,LogLevel::Level, LogEvent::ptr event)override;
 	//重新打开文件,文件打开成功,返回true
 	bool reopen();
 private:
 	std::string m_filename;
-	std::ofstrram m_filestream;
+	std::ofstream m_filestream;
+};
 }
-//#endif
+#endif
 
 
 
