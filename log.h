@@ -8,13 +8,14 @@
 #include<sstream>
 #include<fstream>
 #include<vector>
-namespace syalr{
+namespace sylar{
 class Logger;
 //日志事件
 class LogEvent {
 public:
 	typedef std::shared_ptr<LogEvent> ptr;
-	LogEvent();
+	LogEvent(const char* fine,int32_t m_line,uint32_t elapse,
+			uint32_t thread_id,uint32_t fiber_id,uint64_t time);
 
 	const char* getFile() { return m_file; }
 	int32_t getLine() { return m_line; }
@@ -62,7 +63,6 @@ public:
 	{
 	public:
 		typedef std::shared_ptr<FormatItem> ptr;
-		FormatItem(const std::string& fmt = "") {};
 		virtual ~FormatItem(){}
 		virtual void format(std::ostream& os, std::shared_ptr<Logger> logger,LogLevel::Level level,LogEvent::ptr event) = 0;
 	};
@@ -91,7 +91,7 @@ protected:
 };
 
 //日志器
-class Logger {
+class Logger: public std::enable_shared_from_this<Logger>{
 public:
 	typedef std::shared_ptr<Logger> ptr;
 
@@ -114,6 +114,7 @@ private:
 	std::string m_name;//日志名称
 	LogLevel::Level m_level;//日志级别
 	std::list<LogAppender::ptr> m_appenders;
+	LogFormatter::ptr m_formatter;
 };
 
 //输出到控制台的Appender
