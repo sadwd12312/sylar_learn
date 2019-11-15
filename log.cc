@@ -120,11 +120,14 @@ namespace sylar{
 		std::string m_string;
 	};
 
-	LogEvent(const char* fine,int32_t m_line,uint32_t elapse,
+	LogEvent::LogEvent(const char* file,int32_t line,uint32_t elapse,
 			uint32_t thread_id,uint32_t fiber_id,uint64_t time)
-	{
-
-	}
+	:m_file(file),
+	 m_line(line),
+	 m_elapse(elapse),
+	 m_threadId(thread_id),
+	 m_fiberId(fiber_id),
+	 m_time(time){}
 
 	Logger::Logger(const std::string& name)
 		:m_name(name),
@@ -225,7 +228,6 @@ namespace sylar{
 	void LogFormatter::init() {
 		std::vector<std::tuple<std::string, std::string, int>> vec;
 		std::string nstr;
-		size_t last_pos = 0;
 		for (size_t i = 0; i < m_pattern.size(); ++i)
 		{
 			if (m_pattern[i] !='%')
@@ -319,11 +321,11 @@ namespace sylar{
 	{
 		if (std::get<2>(i) == 0)
 		{
-			m_items.push_back(FormatItem::ptr(new StringFormatItem(std::get<0>[i])));
+			m_items.push_back(FormatItem::ptr(new StringFormatItem(std::get<0>(i))));
 		}
 		else
 		{
-			auto it = s_format_items.find(std::<0>[i]);
+			auto it = s_format_items.find(std::get<0>(i));
 			if (it == s_format_items.end())
 			{
 				m_items.push_back(FormatItem::ptr(new StringFormatItem("<<error_format %" + std::get<0>(i) + ">>")));

@@ -23,7 +23,9 @@ public:
 	uint32_t getThreadId() { return m_threadId; }
 	uint32_t getFiberId() { return m_fiberId; }
 	uint64_t getTime() { return m_time; }
-	const std::string& getContext()const { return m_content; }
+	std::string getContext()const { return m_ss.str(); }
+
+	std::stringstream& getSS(){return m_ss;}
 
 private:
 	const char* m_file = nullptr; //文件名
@@ -32,7 +34,7 @@ private:
 	uint32_t m_threadId = 0;//线程id
 	uint32_t m_fiberId = 0;//协程id
 	uint64_t m_time = 0;//时间戳
-	std::string m_content;
+	std::stringstream m_ss;
 };
 //日志级别
 class LogLevel {
