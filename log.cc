@@ -2,6 +2,8 @@
 #include<map>
 #include<iostream>
 #include<functional>
+#include<time.h>
+#include<string.h>
 namespace sylar{
 
 	const char* LogLevel::ToString(LogLevel::Level level)
@@ -77,9 +79,18 @@ namespace sylar{
 	{
 	public:
 		DateTimeFormatItem(const std::string& format = "%Y:%m:%d %H:%M:%S")
-			:m_format(format) {}
+			:m_format(format) {
+			if(m_format.empty())
+			{
+				m_format="%Y-%m-%d %H:%M:%S";
+			}
 		void format(std::ostream& os, Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override {
-			os << event->getTime();
+			struct tm tm;
+			time_t time=event->getTime();
+			localtime_r(&time,&tm);
+			char buf[64];
+			strftime(buf,sizeof(buf),m_format.c_str(),&tm);
+			os << buf;
 		}
 	private:
 		std::string m_format;
@@ -133,7 +144,7 @@ namespace sylar{
 		:m_name(name),
        		m_level(LogLevel::DEBUG)
 		{
-		m_formatter.reset(new LogFormatter("%d [%p] %f %l %m %n"));
+		m_formatter.reset(new LogFormatter("%d [%p] <%f:%l>	%m %n"));
 		}
 
 	void Logger::addAppender(LogAppender::ptr appender)
@@ -210,11 +221,13 @@ namespace sylar{
 	{
 		if (level >= m_level)
 		{
-			std::cout << m_formatter->format(logger, level, event);
+			std::cout<<m_formatter->format(logger,level,event);
 		}
 	}
 	LogFormatter::LogFormatter(const std::string& pattern)
-		:m_pattern(pattern) {}
+		:m_pattern(pattern) {
+		init();	
+		}
 
 	std::string LogFormatter::format(std::shared_ptr<Logger> logger, LogLevel::Level level, LogEvent::ptr event)
 	{
@@ -244,7 +257,7 @@ namespace sylar{
 			std::string str;
 			std::string fmt;
 			while (++n < m_pattern.size()) {
-				if (isspace(m_pattern[n]))
+				if (!isalpha(m_pattern[n])&& m_pattern[n]!='{'&& m_pattern[n]!='}')
 				{
 					break;
 				}
@@ -267,15 +280,18 @@ namespace sylar{
 						break;
 					}
 				}
+				++n;
 			}
 			if (fmt_status == 0)
 			{
 				if (!nstr.empty())
 				{
 					vec.push_back(std::make_tuple(nstr, std::string(), 0));
+					nstr.clear();
 				}
 				str = m_pattern.substr(i + 1, n - i - 1);
 				vec.push_back(std::make_tuple(str, fmt, 1));
+				i=n-1;
 			}
 			else if (fmt_status == 1)
 			{
@@ -284,13 +300,18 @@ namespace sylar{
 			}
 			else if (fmt_status == 2)
 			{
+				if (!nstr.empty())
+				{
+					vec.push_back(std::make_tuple(nstr, std::string(), 0));
+					nstr.clear();
+				}
 				vec.push_back(std::make_tuple(str, fmt, 1));
 			}
-			i = n;
+			i = n-1;
 		}
 		if (!nstr.empty())
 		{
-			vec.push_back(std::make_tuple(nstr, std::string(), 0));
+			vec.push_back(std::make_tuple(nstr, std::string(), 0));	
 		}
 		//%m -- ÏûÏ¢Ìå
 		//%p -- Level
@@ -335,8 +356,9 @@ namespace sylar{
 				m_items.push_back(it->second(std::get<1>(i)));
 			}
 		}
-		std::cout << std::get<0>(i) << " - " << std::get<1>(i) << " - " << std::get<2>(i) << std::endl;
+		std::cout <<"{" <<std::get<0>(i) << "} - {" << std::get<1>(i) << "} - {" << std::get<2>(i) <<"}"<< std::endl;
 	}
+	std::cout<<m_items.size()<<std::endl;
 }
 }
 
