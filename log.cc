@@ -84,6 +84,7 @@ namespace sylar{
 			{
 				m_format="%Y-%m-%d %H:%M:%S";
 			}
+			}
 		void format(std::ostream& os, Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override {
 			struct tm tm;
 			time_t time=event->getTime();
@@ -257,14 +258,16 @@ namespace sylar{
 			std::string str;
 			std::string fmt;
 			while (++n < m_pattern.size()) {
-				if (!isalpha(m_pattern[n])&& m_pattern[n]!='{'&& m_pattern[n]!='}')
+				if (!fmt_status && (!isalpha(m_pattern[n])&& m_pattern[n]!='{'&& m_pattern[n]!='}'))
 				{
+					str=m_pattern.substr(i+1,n-i-1);
 					break;
 				}
 				if (fmt_status == 0)
 				{
 					if (m_pattern[n] == '{') {
 						str = m_pattern.substr(i + 1, n - i);
+						std::cout<<"*"<<str<<std::endl;
 						fmt_status = 1;//½âÎö¸ñÊ½
 						++n;
 						fmt_begin = n;
@@ -276,11 +279,20 @@ namespace sylar{
 					if (m_pattern[n] == '}')
 					{
 						fmt = m_pattern.substr(fmt_begin + 1, n - fmt_begin - 1);
-						fmt_status = 2;
+						std::cout<<"%"<<fmt<<std::endl;
+						fmt_status = 0;
+						++n;
 						break;
 					}
 				}
 				++n;
+				if(n==m_pattern.size())
+				{
+					if(str.empty())
+					{
+						str=m_pattern.substr(i+1);
+					}
+				}
 			}
 			if (fmt_status == 0)
 			{
@@ -289,7 +301,6 @@ namespace sylar{
 					vec.push_back(std::make_tuple(nstr, std::string(), 0));
 					nstr.clear();
 				}
-				str = m_pattern.substr(i + 1, n - i - 1);
 				vec.push_back(std::make_tuple(str, fmt, 1));
 				i=n-1;
 			}
@@ -298,16 +309,6 @@ namespace sylar{
 				std::cout << "pattern parse error:" << m_pattern << " - " << m_pattern.substr(i) << std::endl;
 				vec.push_back(std::make_tuple("<<pattern_error>>", fmt, 0));
 			}
-			else if (fmt_status == 2)
-			{
-				if (!nstr.empty())
-				{
-					vec.push_back(std::make_tuple(nstr, std::string(), 0));
-					nstr.clear();
-				}
-				vec.push_back(std::make_tuple(str, fmt, 1));
-			}
-			i = n-1;
 		}
 		if (!nstr.empty())
 		{

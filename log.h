@@ -14,8 +14,7 @@ class Logger;
 class LogEvent {
 public:
 	typedef std::shared_ptr<LogEvent> ptr;
-	LogEvent(const char* fine,int32_t m_line,uint32_t elapse,
-			uint32_t thread_id,uint32_t fiber_id,uint64_t time);
+	LogEvent(const char* file,int32_t m_line,uint32_t elapse,uint32_t thread_id,uint32_t fiber_id,uint64_t time);
 
 	const char* getFile() { return m_file; }
 	int32_t getLine() { return m_line; }
