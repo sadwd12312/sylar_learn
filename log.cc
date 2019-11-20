@@ -78,7 +78,7 @@ namespace sylar{
 	class DateTimeFormatItem :public LogFormatter::FormatItem
 	{
 	public:
-		DateTimeFormatItem(const std::string& format = "%Y:%m:%d %H:%M:%S")
+		DateTimeFormatItem(const std::string& format = "%Y-%m:%d %H:%M:%S")
 			:m_format(format) {
 			if(m_format.empty())
 			{
@@ -104,6 +104,17 @@ namespace sylar{
 			os << event->getFile();
 		}
 	};
+	class TabFormatItem :public LogFormatter::FormatItem
+	{
+	public:
+		TabFormatItem(const std::string& str=""){}
+		void format(std::ostream& os, Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override {
+			os << "\t";
+		}
+	private:
+		std::string m_string;
+	};
+
 	class LineFormatItem :public LogFormatter::FormatItem
 	{
 	public:
@@ -145,7 +156,7 @@ namespace sylar{
 		:m_name(name),
        		m_level(LogLevel::DEBUG)
 		{
-		m_formatter.reset(new LogFormatter("%d [%p] <%f:%l>	%m %n"));
+		m_formatter.reset(new LogFormatter("%d{%Y-%m-%d %H:%M:%S}%T%t%T%F%T[%p]%T[%c]%t%f:%l%T%m%n"));
 		}
 
 	void Logger::addAppender(LogAppender::ptr appender)
@@ -249,6 +260,14 @@ namespace sylar{
 				nstr.append(1, m_pattern[i]);
 				continue;
 			}
+			if((i+1)<m_pattern.size())
+			{
+				if(m_pattern[i+1]=='%')
+				{
+					nstr.append(1,'%');
+					continue;
+				}
+			}
 
 
 			size_t n = i + 1;
@@ -267,7 +286,7 @@ namespace sylar{
 				{
 					if (m_pattern[n] == '{') {
 						str = m_pattern.substr(i + 1, n - i);
-						std::cout<<"*"<<str<<std::endl;
+					//	std::cout<<"*"<<str<<std::endl;
 						fmt_status = 1;//解析格式
 						++n;
 						fmt_begin = n;
@@ -279,7 +298,7 @@ namespace sylar{
 					if (m_pattern[n] == '}')
 					{
 						fmt = m_pattern.substr(fmt_begin + 1, n - fmt_begin - 1);
-						std::cout<<"%"<<fmt<<std::endl;
+				//		std::cout<<"%"<<fmt<<std::endl;
 						fmt_status = 0;
 						++n;
 						break;
@@ -312,7 +331,7 @@ namespace sylar{
 		}
 		if (!nstr.empty())
 		{
-			vec.push_back(std::make_tuple(nstr, std::string(), 0));	
+			vec.push_back(std::make_tuple(nstr,"", 0));	
 		}
 		//%m -- 消息体
 		//%p -- Level
@@ -337,6 +356,9 @@ namespace sylar{
 		XX(d, DateTimeFormatItem),
 		XX(f, FilenameFormatItem),
 		XX(l, LineFormatItem),
+		XX(T, TabFormatItem),
+		XX(F, FiberIdFormatItem)
+		
 #undef XX
 	};
 	for (auto& i : vec)
@@ -351,15 +373,16 @@ namespace sylar{
 			if (it == s_format_items.end())
 			{
 				m_items.push_back(FormatItem::ptr(new StringFormatItem("<<error_format %" + std::get<0>(i) + ">>")));
+				//m_error=ture;
 			}
 			else
 			{
 				m_items.push_back(it->second(std::get<1>(i)));
 			}
 		}
-		std::cout <<"{" <<std::get<0>(i) << "} - {" << std::get<1>(i) << "} - {" << std::get<2>(i) <<"}"<< std::endl;
+	//	std::cout <<"{" <<std::get<0>(i) << "} - {" << std::get<1>(i) << "} - {" << std::get<2>(i) <<"}"<< std::endl;
 	}
-	std::cout<<m_items.size()<<std::endl;
+//	std::cout<<m_items.size()<<std::endl;
 }
 }
 
